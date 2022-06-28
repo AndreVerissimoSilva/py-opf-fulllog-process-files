@@ -20,12 +20,18 @@ class MaskKind(Enum):
     STRING = 1
 
 
-destinationPath = {
+paths = {
     "ToProcess": "files/to_process/",
     "Processed": "files/processed/",
     "Ignored": "files/ignored/",
     "WithErrors": "files/with_errors/"
 }
+
+
+def createNecessariesDirs():
+    for key in paths:
+        if not os.path.exists(paths[key]):
+            os.makedirs(paths[key])
 
 
 def log(msg):
@@ -47,7 +53,8 @@ def maskNumeric(numericString):
 
 
 def saveFileSummary(id_pessoa, filename, processResult, append=True):
-    newFile = open("_dadoscadastrais_fulllog_summary.csv", "a" if append else "w")
+    newFile = open("_dadoscadastrais_fulllog_summary.csv",
+                   "a" if append else "w")
 
     line = id_pessoa + ";" + filename + ";" + processResult + "\n"
 
@@ -66,7 +73,7 @@ def saveFile(filepath, filename, fileContent):
 
 
 def getFileListToProcess():
-    return [filename for filename in os.listdir(destinationPath["ToProcess"]) if filename.endswith(".json")]
+    return [filename for filename in os.listdir(paths["ToProcess"]) if filename.endswith(".json")]
 
 
 def maskStringValueByKey(dict, key):
@@ -155,7 +162,7 @@ def processFileEndpointFinan(respBody):
 
 
 def processFile(filename):
-    with open(destinationPath["ToProcess"] + filename) as fileContent:
+    with open(paths["ToProcess"] + filename) as fileContent:
         data = json.load(fileContent)
 
     req = json.loads(data["request"])
@@ -188,13 +195,13 @@ def processFile(filename):
         filenameSufixToSave = endpointPrefix + "_" + dictFile["interaction_id"]
 
         filename = saveFile(
-            destinationPath["Processed"], filenameSufixToSave, fileContent)
+            paths["Processed"], filenameSufixToSave, fileContent)
 
         dictFile["processesResult"] = ProcessResult.PROCESSED
 
     else:
-        shutil.move(destinationPath["ToProcess"] +
-                    filename, destinationPath["Ignored"] + filename)
+        shutil.move(paths["ToProcess"] +
+                    filename, paths["Ignored"] + filename)
         dictFile["processesResult"] = ProcessResult.IGNORED
 
     return dictFile
@@ -397,6 +404,8 @@ def __test_finan__():
 def __main__():
     saveFileSummary("Id_Pessoa", "Filename", "Result", append=False)
 
+    createNecessariesDirs()
+
     files = getFileListToProcess()
     for file in files:
         log("File " + file + " processing")
@@ -406,8 +415,8 @@ def __main__():
             saveFileSummary(dictFile["id_pessoa"], file,
                             dictFile["processesResult"].name)
         except:
-            shutil.move(destinationPath["ToProcess"] +
-                        file, destinationPath["WithErrors"] + file)
+            shutil.move(paths["ToProcess"] +
+                        file, paths["WithErrors"] + file)
             saveFileSummary("null", file,
                             ProcessResult.WITH_ERRORS.name)
 
